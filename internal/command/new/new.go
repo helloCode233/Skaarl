@@ -5,20 +5,18 @@
 package new
 
 import (
+	"Skaarl/config"
+	"Skaarl/internal/pkg/driver"
+	"Skaarl/internal/pkg/helper"
 	"bytes"
 	"fmt"
-	"github.com/go-nunu/nunu/internal/pkg/driver"
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/AlecAivazis/survey/v2"
-
-	"github.com/go-nunu/nunu/config"
-	"github.com/go-nunu/nunu/internal/pkg/helper"
-	"github.com/spf13/cobra"
 )
 
 // Project 项目结构体
@@ -30,11 +28,11 @@ type Project struct {
 // CmdNew new子命令定义
 // 用于创建新的Nunu项目
 var CmdNew = &cobra.Command{
-	Use:     "new",                                    // 命令名称
-	Example: "nunu new demo-api",                      // 使用示例
-	Short:   "create a new project.",                  // 简短描述
-	Long:    `create a new project with nunu layout.`, // 详细描述
-	Run:     run,                                      // 命令执行函数
+	Use:     "new",                                      // 命令名称
+	Example: "skaarl new demo-api",                      // 使用示例
+	Short:   "create a new project.",                    // 简短描述
+	Long:    `create a new project with skaarl layout.`, // 详细描述
+	Run:     run,                                        // 命令执行函数
 }
 var (
 	repoURL string
@@ -102,7 +100,7 @@ func run(cmd *cobra.Command, args []string) {
 }
 
 func (p *Project) initLog(wireFiles map[string][]string) error {
-	project := driver.NewDriver(filepath.Join(".", p.ProjectName, "nunu-lock.log")).InitSqLiteGorm().InitProject()
+	project := driver.NewDriver(filepath.Join(".", p.ProjectName, "skaarl-lock.log")).InitSqLiteGorm().InitProject()
 	return project.SaveWireLogs(wireFiles)
 }
 

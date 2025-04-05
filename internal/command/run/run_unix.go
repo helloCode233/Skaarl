@@ -16,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-nunu/nunu/internal/pkg/helper"
 	"github.com/spf13/cobra"
@@ -31,8 +30,8 @@ var excludeDir string
 var includeExt string
 
 func init() {
-	CmdRun.Flags().StringVarP(&excludeDir, "excludeDir", "", excludeDir, `eg: nunu run --excludeDir="tmp,vendor,.git,.idea"`)
-	CmdRun.Flags().StringVarP(&includeExt, "includeExt", "", includeExt, `eg: nunu run --includeExt="go,tpl,tmpl,html,yaml,yml,toml,ini,json"`)
+	CmdRun.Flags().StringVarP(&excludeDir, "excludeDir", "", excludeDir, `eg: skaarl run --excludeDir="tmp,vendor,.git,.idea"`)
+	CmdRun.Flags().StringVarP(&includeExt, "includeExt", "", includeExt, `eg: skaarl run --includeExt="go,tpl,tmpl,html,yaml,yml,toml,ini,json"`)
 	if excludeDir == "" {
 		excludeDir = config.RunExcludeDir
 	}
@@ -43,9 +42,9 @@ func init() {
 
 var CmdRun = &cobra.Command{
 	Use:     "run",
-	Short:   "nunu run [main.go path]",
-	Long:    "nunu run [main.go path]",
-	Example: "nunu run cmd/server",
+	Short:   "skaarl run [main.go path]",
+	Long:    "skaarl run [main.go path]",
+	Example: "skaarl run cmd/server",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmdArgs, programArgs := helper.SplitArgs(cmd, args)
 		var dir string

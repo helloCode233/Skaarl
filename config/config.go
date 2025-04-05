@@ -10,7 +10,7 @@ var (
 	// WireCmd wire依赖注入工具命令
 	WireCmd = "github.com/google/wire/cmd/wire@latest"
 	// NunuCmd nunu命令行工具命令
-	NunuCmd = "github.com/go-nunu/nunu@latest"
+	NunuCmd = "github.com/go-skaarl/skaarl@latest"
 	// RepoBase 基础项目模板仓库
 	RepoBase = "https://github.com/helloCode233/nunu-layout-basic.git"
 	// RepoAdvanced 高级项目模板仓库

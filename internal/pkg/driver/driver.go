@@ -1,9 +1,9 @@
 package driver
 
 import (
+	"Skaarl/config"
+	"Skaarl/internal/pkg/model"
 	"fmt"
-	"github.com/go-nunu/nunu/config"
-	"github.com/go-nunu/nunu/internal/pkg/model"
 	"github.com/spf13/viper"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

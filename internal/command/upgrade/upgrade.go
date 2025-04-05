@@ -12,9 +12,9 @@ import (
 
 var CmdUpgrade = &cobra.Command{
 	Use:     "upgrade",
-	Short:   "Upgrade the nunu command.",
-	Long:    "Upgrade the nunu command.",
-	Example: "nunu upgrade",
+	Short:   "Upgrade the skaarl command.",
+	Long:    "Upgrade the skaarl command.",
+	Example: "skaarl upgrade",
 	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Printf("go install %s\n", config.NunuCmd)
 		cmd := exec.Command("go", "install", config.NunuCmd)

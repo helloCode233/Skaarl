@@ -5,6 +5,8 @@
 package create
 
 import (
+	"Skaarl/internal/pkg/helper"
+	"Skaarl/tpl"
 	"fmt"
 	"log"
 	"os"
@@ -14,8 +16,6 @@ import (
 	"text/template"
 
 	"github.com/duke-git/lancet/v2/strutil"
-	"github.com/go-nunu/nunu/internal/pkg/helper"
-	"github.com/go-nunu/nunu/tpl"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +44,7 @@ func NewCreate() *Create {
 var CmdCreate = &cobra.Command{
 	Use:     "create [type] [handler-name]",                  // 命令格式
 	Short:   "Create a new handler/service/repository/model", // 简短描述
-	Example: "nunu create handler user",                      // 使用示例
+	Example: "skaarl create handler user",                    // 使用示例
 	Args:    cobra.ExactArgs(2),                              // 参数数量
 	Run: func(cmd *cobra.Command, args []string) {
 		// 主逻辑由子命令实现
@@ -66,37 +66,37 @@ func init() {
 // CmdCreateHandler 创建handler子命令
 // 用于创建handler组件
 var CmdCreateHandler = &cobra.Command{
-	Use:     "handler",                  // 命令名称
-	Short:   "Create a new handler",     // 简短描述
-	Example: "nunu create handler user", // 使用示例
-	Args:    cobra.ExactArgs(1),         // 参数数量
-	Run:     runCreate,                  // 执行函数
+	Use:     "handler",                    // 命令名称
+	Short:   "Create a new handler",       // 简短描述
+	Example: "skaarl create handler user", // 使用示例
+	Args:    cobra.ExactArgs(1),           // 参数数量
+	Run:     runCreate,                    // 执行函数
 }
 var CmdCreateService = &cobra.Command{
 	Use:     "service",
 	Short:   "Create a new service",
-	Example: "nunu create service user",
+	Example: "skaarl create service user",
 	Args:    cobra.ExactArgs(1),
 	Run:     runCreate,
 }
 var CmdCreateRepository = &cobra.Command{
 	Use:     "repository",
 	Short:   "Create a new repository",
-	Example: "nunu create repository user",
+	Example: "skaarl create repository user",
 	Args:    cobra.ExactArgs(1),
 	Run:     runCreate,
 }
 var CmdCreateModel = &cobra.Command{
 	Use:     "model",
 	Short:   "Create a new model",
-	Example: "nunu create model user",
+	Example: "skaarl create model user",
 	Args:    cobra.ExactArgs(1),
 	Run:     runCreate,
 }
 var CmdCreateAll = &cobra.Command{
 	Use:     "all",
 	Short:   "Create a new handler & service & repository & model",
-	Example: "nunu create all user",
+	Example: "skaarl create all user",
 	Args:    cobra.ExactArgs(1),
 	Run:     runCreate,
 }

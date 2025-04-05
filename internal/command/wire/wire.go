@@ -1,23 +1,22 @@
 package wire
 
 import (
+	"Skaarl/internal/pkg/helper"
 	"fmt"
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/go-nunu/nunu/internal/pkg/helper"
-	"github.com/spf13/cobra"
 )
 
 var CmdWire = &cobra.Command{
 	Use:     "wire",
-	Short:   "nunu wire [wire.go path]",
-	Long:    "nunu wire [wire.go path]",
-	Example: "nunu wire cmd/server",
+	Short:   "skaarl wire [wire.go path]",
+	Long:    "skaarl wire [wire.go path]",
+	Example: "skaarl wire cmd/server",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmdArgs, _ := helper.SplitArgs(cmd, args)
 		var dir string
@@ -69,9 +68,9 @@ var CmdWire = &cobra.Command{
 }
 var CmdWireAll = &cobra.Command{
 	Use:     "all",
-	Short:   "nunu wire all",
-	Long:    "nunu wire all",
-	Example: "nunu wire all",
+	Short:   "skaarl wire all",
+	Long:    "skaarl wire all",
+	Example: "skaarl wire all",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmdArgs, _ := helper.SplitArgs(cmd, args)
 		var dir string
