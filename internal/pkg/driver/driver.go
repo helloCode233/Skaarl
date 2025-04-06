@@ -8,7 +8,10 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 type Driver struct {
@@ -52,7 +55,7 @@ func (d *Driver) InitSqLiteGorm() *Driver {
 
 func (d *Driver) InitProject() *Driver {
 	if d.db != nil {
-		err := d.db.AutoMigrate(&model.WireLog{})
+		err := d.db.AutoMigrate(&model.WireLog{}, &model.Cache{})
 		if err != nil {
 			return nil
 		}
@@ -60,23 +63,31 @@ func (d *Driver) InitProject() *Driver {
 	return d
 }
 
-func (d *Driver) SaveWireLogs(files map[string][]string) error {
+func (d *Driver) SaveWireLogs(files map[string]string) error {
 	err := d.db.Transaction(func(tx *gorm.DB) error {
-		for key, values := range files {
-			for _, value := range values {
-				println(key + "|" + value)
-				wrieLog := &model.WireLog{Func: value, Import: key}
-				err := tx.Create(wrieLog).Error
-				if err != nil {
-					return err
-				}
+		for key, value := range files {
+			wrieLog := &model.WireLog{Func: key, Import: value}
+			err := tx.Create(wrieLog).Error
+			if err != nil {
+				return err
 			}
 		}
-
-		// 返回 nil 提交事务
 		return nil
 	})
 	return err
+}
+
+func (d *Driver) Put(Key, Value string) error {
+	d.db.Unscoped().Where("key = ?", Key).Delete(&model.Cache{})
+	return d.db.Create(&model.Cache{Key: Key, Value: Value}).Error
+}
+func (d *Driver) Get(Key string) *model.Cache {
+	var cache model.Cache
+	err := d.db.First(&cache, "key = ?", Key).Error
+	if err != nil {
+		return nil
+	}
+	return &cache
 }
 
 func (d *Driver) viperRead(configPath string) *config.Configuration {
@@ -94,7 +105,6 @@ func (d *Driver) viperRead(configPath string) *config.Configuration {
 }
 
 func (d *Driver) InitConfig(configPath string) error {
-
 	if !filepath.IsAbs(configPath) {
 		abs, err := filepath.Abs(configPath)
 		if err != nil {
@@ -102,8 +112,50 @@ func (d *Driver) InitConfig(configPath string) error {
 		}
 		configPath = abs
 	}
-	//fmt.Println("load config:" + configPath)
 	env := d.viperRead(filepath.Join(configPath, "env.yaml")).App.Env
 	d.config = d.viperRead(filepath.Join(configPath, env+".yaml"))
 	return nil
+}
+func (p *Driver) SelectWireFiles() map[string]string {
+	result := make(map[string]string)
+	err := filepath.Walk(p.Get("ProjectName").Value, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) != ".go" {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		// 匹配带 @wire 标记的函数定义（更精确的版本）
+		regexWireFunc := `(?s)//\s*@wire:\w+\s*\nfunc.*?\s*\{`
+		// 正则表达式匹配带 @wire 标记的函数
+		wireFuncRe := regexp.MustCompile(regexWireFunc)
+		matches := wireFuncRe.FindAllStringSubmatch(string(data), -1)
+		value := strings.Replace(filepath.Dir(path), "\\", "/", -1)
+		for _, match := range matches {
+			key := match[0]
+			result[key[strings.Index(key, "func"):len(key)-2]] = value
+		}
+		return err
+	})
+	if err != nil {
+		return nil
+	}
+	return result
+}
+
+func (p *Driver) CheckWireFiles() bool {
+	selectWireFiles := p.SelectWireFiles()
+	var checkWireFiles []*model.WireLog
+	err := p.db.Find(&checkWireFiles).Error
+	if err != nil || len(checkWireFiles) != len(selectWireFiles) {
+		return false
+	}
+	return true
 }

@@ -8,4 +8,5 @@ type Log struct {
 	MaxSize    int    `mapstructure:"max_size" json:"max_size" yaml:"max_size"` // MB
 	MaxAge     int    `mapstructure:"max_age" json:"max_age" yaml:"max_age"`    // day
 	Compress   bool   `mapstructure:"compress" json:"compress" yaml:"compress"`
+	Encoding   string `mapstructure:"encoding" json:"encoding" yaml:"encoding"`
 }
