@@ -157,5 +157,11 @@ func (p *Driver) CheckWireFiles() bool {
 	if err != nil || len(checkWireFiles) != len(selectWireFiles) {
 		return false
 	}
+	for _, file := range checkWireFiles {
+		_, flag := selectWireFiles[file.Func]
+		if !flag {
+			return false
+		}
+	}
 	return true
 }

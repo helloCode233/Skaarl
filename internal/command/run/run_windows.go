@@ -237,7 +237,8 @@ func start(dir string, programArgs []string) *exec.Cmd {
 	cmd := exec.Command("go", append([]string{"run", dir}, programArgs...)...)
 	// 设置新的进程组以便终止时能杀死所有子进程
 	db := driver.NewDriver(filepath.Join(".", "skaarl-lock.log")).InitSqLiteGorm()
-	db.SelectWireFiles()
+	flag := db.CheckWireFiles()
+	println(flag)
 	// 重定向标准输出和错误输出
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
