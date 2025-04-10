@@ -62,6 +62,18 @@ func (d *Driver) InitProject() *Driver {
 	}
 	return d
 }
+func (d *Driver) GetWireLog() []string {
+	var imports []string
+	err := d.db.Model(&model.WireLog{}).
+		Select("import").
+		Group("import").
+		Pluck("import", &imports).
+		Error
+	if err != nil {
+		return nil
+	}
+	return imports
+}
 
 func (d *Driver) SaveWireLogs(files map[string]string) error {
 	err := d.db.Transaction(func(tx *gorm.DB) error {
@@ -140,7 +152,7 @@ func (p *Driver) SelectWireFiles() map[string]string {
 		value := strings.Replace(filepath.Dir(path), "\\", "/", -1)
 		for _, match := range matches {
 			key := match[0]
-			result[key[strings.Index(key, "func"):len(key)-2]] = value
+			result[key[strings.Index(key, "func")+4:strings.Index(key, "(")]] = value
 		}
 		return err
 	})
@@ -150,18 +162,22 @@ func (p *Driver) SelectWireFiles() map[string]string {
 	return result
 }
 
-func (p *Driver) CheckWireFiles() bool {
+func (p *Driver) CheckWireFiles() (bool, map[string]string) {
 	selectWireFiles := p.SelectWireFiles()
 	var checkWireFiles []*model.WireLog
 	err := p.db.Find(&checkWireFiles).Error
 	if err != nil || len(checkWireFiles) != len(selectWireFiles) {
-		return false
+		return false, nil
 	}
 	for _, file := range checkWireFiles {
 		_, flag := selectWireFiles[file.Func]
 		if !flag {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	err = p.SaveWireLogs(selectWireFiles)
+	if err != nil {
+		return false, nil
+	}
+	return true, selectWireFiles
 }

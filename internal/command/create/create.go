@@ -6,17 +6,11 @@ package create
 
 import (
 	"Skaarl/internal/pkg/helper"
-	"Skaarl/tpl"
-	"fmt"
-	"log"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
-	"text/template"
-
 	"github.com/duke-git/lancet/v2/strutil"
 	"github.com/spf13/cobra"
+	"log"
+	"path/filepath"
+	"strings"
 )
 
 // Create 创建组件结构体
@@ -51,7 +45,7 @@ var CmdCreate = &cobra.Command{
 	},
 }
 var (
-	tplPath string
+	tplPath = "create"
 )
 
 func init() {
@@ -139,51 +133,30 @@ func runCreate(cmd *cobra.Command, args []string) {
 // genFile 生成组件文件
 // 根据模板生成对应的组件文件
 func (c *Create) genFile() {
-	filePath := c.FilePath
-	if filePath == "" {
-		filePath = fmt.Sprintf("internal/%s/", c.CreateType)
-	}
-	f := createFile(filePath, strings.ToLower(c.FileName)+".go")
-	if f == nil {
-		log.Printf("warn: file %s%s %s", filePath, strings.ToLower(c.FileName)+".go", "already exists.")
-		return
-	}
-	defer f.Close()
-	var t *template.Template
-	var err error
-	if tplPath == "" {
-		t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("create/%s.tpl", c.CreateType))
-	} else {
-		t, err = template.ParseFiles(path.Join(tplPath, fmt.Sprintf("%s.tpl", c.CreateType)))
-	}
-	if err != nil {
-		log.Fatalf("create %s error: %s", c.CreateType, err.Error())
-	}
-	err = t.Execute(f, c)
-	if err != nil {
-		log.Fatalf("create %s error: %s", c.CreateType, err.Error())
-	}
-	log.Printf("Created new %s: %s", c.CreateType, filePath+strings.ToLower(c.FileName)+".go")
-
-}
-
-// createFile 创建文件
-// 在指定路径创建文件，如果文件已存在则返回nil
-// 返回创建的文件指针
-func createFile(dirPath string, filename string) *os.File {
-	filePath := filepath.Join(dirPath, filename)
-	err := os.MkdirAll(dirPath, os.ModePerm)
-	if err != nil {
-		log.Fatalf("Failed to create dir %s: %v", dirPath, err)
-	}
-	stat, _ := os.Stat(filePath)
-	if stat != nil {
-		return nil
-	}
-	file, err := os.Create(filePath)
-	if err != nil {
-		log.Fatalf("Failed to create file %s: %v", filePath, err)
-	}
-
-	return file
+	//filePath := c.FilePath
+	//if filePath == "" {
+	//	filePath = fmt.Sprintf("internal/%s/", c.CreateType)
+	//}
+	//f := helper.CreateFile(filePath, strings.ToLower(c.FileName)+".go")
+	//if f == nil {
+	//	log.Printf("warn: file %s%s %s", filePath, strings.ToLower(c.FileName)+".go", "already exists.")
+	//	return
+	//}
+	//defer f.Close()
+	//var t *template.Template
+	//var err error
+	//if tplPath == "" {
+	//	t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("create/%s.tpl", c.CreateType))
+	//} else {
+	//	t, err = template.ParseFiles(path.Join(tplPath, fmt.Sprintf("%s.tpl", c.CreateType)))
+	//}
+	//if err != nil {
+	//	log.Fatalf("create %s error: %s", c.CreateType, err.Error())
+	//}
+	//err = t.Execute(f, c)
+	//if err != nil {
+	//	log.Fatalf("create %s error: %s", c.CreateType, err.Error())
+	//}
+	//log.Printf("Created new %s: %s", c.CreateType, filePath+strings.ToLower(c.FileName)+".go")
+	helper.GenFile(c.FilePath, c.CreateType, c.FileName, tplPath, c)
 }

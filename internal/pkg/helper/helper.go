@@ -1,11 +1,15 @@
 package helper
 
 import (
+	"Skaarl/tpl"
 	"fmt"
+	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/spf13/cobra"
 )
@@ -77,4 +81,71 @@ func FindMain(base, excludeDir string) (map[string]string, error) {
 		return nil, err
 	}
 	return cmdPath, nil
+}
+
+// createFile 创建文件
+// 在指定路径创建文件，如果文件已存在则返回nil
+// 返回创建的文件指针
+func CreateFile(dirPath string, filename string) *os.File {
+	filePath := filepath.Join(dirPath, filename)
+	err := os.MkdirAll(dirPath, os.ModePerm)
+	if err != nil {
+		log.Fatalf("Failed to create dir %s: %v", dirPath, err)
+	}
+	stat, _ := os.Stat(filePath)
+	if stat != nil {
+		return nil
+	}
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Fatalf("Failed to create file %s: %v", filePath, err)
+	}
+
+	return file
+}
+
+// genFile 生成组件文件
+// 根据模板生成对应的组件文件
+func GenFile(filePath, FileName, CreateType, tplPath string, data any) {
+
+	if filePath == "" {
+		filePath = fmt.Sprintf("internal/%s/", CreateType)
+	}
+	f := CreateFile(filePath, strings.ToLower(FileName)+".go")
+	if f == nil {
+		log.Printf("warn: file %s%s %s", filePath, strings.ToLower(FileName)+".go", "already exists.")
+		return
+	}
+	defer f.Close()
+	var t *template.Template
+	var err error
+	switch tplPath {
+	case "create":
+		t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("create/%s.tpl", CreateType))
+	case "run":
+		t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("run/%s.tpl", CreateType))
+	default:
+		t, err = template.ParseFiles(path.Join(tplPath, fmt.Sprintf("%s.tpl", CreateType)))
+	}
+	//if tplPath == "" {
+	//	t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("create/%s.tpl", CreateType))
+	//} else {
+	//	t, err = template.ParseFiles(path.Join(tplPath, fmt.Sprintf("%s.tpl", CreateType)))
+	//}
+	if err != nil {
+		log.Fatalf("create %s error: %s", CreateType, err.Error())
+	}
+	err = t.Execute(f, data)
+	if err != nil {
+		log.Fatalf("create %s error: %s", CreateType, err.Error())
+	}
+	log.Printf("Created new %s: %s", CreateType, filePath+strings.ToLower(FileName)+".go")
+
+}
+func CapitalizeFirst(str string) string {
+	if len(str) == 0 {
+		return str
+	}
+	// 将首字母转为大写，剩余部分保持原样
+	return strings.ToUpper(string(str[0])) + str[1:]
 }

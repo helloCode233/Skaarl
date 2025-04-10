@@ -231,14 +231,41 @@ func killProcess(cmd *exec.Cmd) error {
 	return nil
 }
 
+type CreateWrie struct {
+	ImportList []string
+	SetList    []Set
+}
+type Set struct {
+	Name string
+	News []NewFunc
+}
+type NewFunc struct {
+	Name string
+	Func string
+}
+
 // start 启动新的go程序进程
 func start(dir string, programArgs []string) *exec.Cmd {
 	// 构造go run命令
 	cmd := exec.Command("go", append([]string{"run", dir}, programArgs...)...)
 	// 设置新的进程组以便终止时能杀死所有子进程
 	db := driver.NewDriver(filepath.Join(".", "skaarl-lock.log")).InitSqLiteGorm()
-	flag := db.CheckWireFiles()
-	println(flag)
+	flag, files := db.CheckWireFiles()
+	result := &CreateWrie{ImportList: db.GetWireLog()}
+	for _, s := range result.ImportList {
+		tmp := &Set{Name: helper.CapitalizeFirst(s[strings.LastIndex(s, "/") : len(s)-1])}
+		funcs := make([]NewFunc, 0)
+		for func_, import_ := range files {
+			if tmp.Name == import_ {
+				funcs = append(funcs, NewFunc{Name: tmp.Name, Func: func_})
+			}
+		}
+		tmp.News = funcs
+	}
+
+	if flag {
+		helper.GenFile("cmd/server/wire", "wrie", "wrie", "run", result)
+	}
 	// 重定向标准输出和错误输出
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
