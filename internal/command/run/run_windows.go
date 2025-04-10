@@ -263,8 +263,8 @@ func start(dir string, programArgs []string) *exec.Cmd {
 		tmp.News = funcs
 	}
 
-	if flag {
-		helper.GenFile("cmd/server/wire", "wrie", "wrie", "run", result)
+	if flag || !helper.FileExists(filepath.Join("cmd", "server", "wire", "wire")) {
+		helper.GenFile("cmd/server/wire", "wire", "wire", "run", result)
 	}
 	// 重定向标准输出和错误输出
 	cmd.Stdout = os.Stdout

@@ -123,7 +123,7 @@ func GenFile(filePath, FileName, CreateType, tplPath string, data any) {
 	case "create":
 		t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("create/%s.tpl", CreateType))
 	case "run":
-		t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("run/%s.tpl", CreateType))
+		t, err = template.ParseFS(tpl.RunTemplateFS, fmt.Sprintf("run/%s.tpl", CreateType))
 	default:
 		t, err = template.ParseFiles(path.Join(tplPath, fmt.Sprintf("%s.tpl", CreateType)))
 	}
@@ -148,4 +148,19 @@ func CapitalizeFirst(str string) string {
 	}
 	// 将首字母转为大写，剩余部分保持原样
 	return strings.ToUpper(string(str[0])) + str[1:]
+}
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		// 存在：返回存在状态，是否为目录，无错误
+		return true
+	}
+
+	if os.IsNotExist(err) {
+		// 明确的不存在：返回 false, 无需检查目录
+		return false
+	}
+
+	// 其他错误（权限不足、路径非法等）
+	return false
 }
