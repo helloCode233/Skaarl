@@ -4,10 +4,10 @@
 package wire
 
 import (
-    {{ range .ImportList }}
+    "github.com/gin-gonic/gin"
+    {{ range .ImportList -}}
     "{{.}}"
     {{ end -}}
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
 )

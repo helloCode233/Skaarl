@@ -53,6 +53,14 @@ func (d *Driver) InitSqLiteGorm() *Driver {
 	return d
 }
 
+func (d *Driver) InitLog(ProjectName string) (*Driver, error) {
+	project := NewDriver(filepath.Join(".", ProjectName, "skaarl-lock.log")).InitSqLiteGorm().InitProject()
+	project.Put("ProjectName", ProjectName)
+	abs, _ := filepath.Abs(filepath.Join(".", ProjectName))
+	project.Put("ProjectPath", strings.Replace(abs, "\\", "/", -1))
+	return project, project.SaveWireLogs(project.SelectWireFiles(ProjectName))
+}
+
 func (d *Driver) InitProject() *Driver {
 	if d.db != nil {
 		err := d.db.AutoMigrate(&model.WireLog{}, &model.Cache{})
@@ -128,9 +136,9 @@ func (d *Driver) InitConfig(configPath string) error {
 	d.config = d.viperRead(filepath.Join(configPath, env+".yaml"))
 	return nil
 }
-func (p *Driver) SelectWireFiles() map[string]string {
+func (p *Driver) SelectWireFiles(Path string) map[string]string {
 	result := make(map[string]string)
-	err := filepath.Walk(p.Get("ProjectName").Value, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(Path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -152,7 +160,8 @@ func (p *Driver) SelectWireFiles() map[string]string {
 		value := strings.Replace(filepath.Dir(path), "\\", "/", -1)
 		for _, match := range matches {
 			key := match[0]
-			result[key[strings.Index(key, "func")+4:strings.Index(key, "(")]] = value
+			println(strings.Replace(value, Path+"/", "", -1))
+			result[key[strings.Index(key, "func")+4:strings.Index(key, "(")]] = strings.Replace(value, Path+"/", "", -1)
 		}
 		return err
 	})
@@ -163,21 +172,21 @@ func (p *Driver) SelectWireFiles() map[string]string {
 }
 
 func (p *Driver) CheckWireFiles() (bool, map[string]string) {
-	selectWireFiles := p.SelectWireFiles()
+	selectWireFiles := p.SelectWireFiles(p.Get("ProjectPath").Value)
 	var checkWireFiles []*model.WireLog
 	err := p.db.Find(&checkWireFiles).Error
 	if err != nil || len(checkWireFiles) != len(selectWireFiles) {
-		return false, nil
+		return false, selectWireFiles
 	}
 	for _, file := range checkWireFiles {
 		_, flag := selectWireFiles[file.Func]
 		if !flag {
-			return false, nil
+			return false, selectWireFiles
 		}
 	}
 	err = p.SaveWireLogs(selectWireFiles)
 	if err != nil {
-		return false, nil
+		return false, selectWireFiles
 	}
 	return true, selectWireFiles
 }

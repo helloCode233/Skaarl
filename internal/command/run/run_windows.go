@@ -248,15 +248,29 @@ type NewFunc struct {
 func start(dir string, programArgs []string) *exec.Cmd {
 	// 构造go run命令
 	cmd := exec.Command("go", append([]string{"run", dir}, programArgs...)...)
+	var db = &driver.Driver{}
+	if helper.FileExists("skaarl-lock.log") {
+		db = driver.NewDriver(filepath.Join(".", "skaarl-lock.log")).InitSqLiteGorm()
+	} else {
+		initLog, err := db.InitLog(helper.GetProjectName("."))
+		if err != nil {
+			return nil
+		}
+		db = initLog
+	}
 	// 设置新的进程组以便终止时能杀死所有子进程
-	db := driver.NewDriver(filepath.Join(".", "skaarl-lock.log")).InitSqLiteGorm()
+
 	flag, files := db.CheckWireFiles()
 	result := &CreateWrie{ImportList: db.GetWireLog()}
 	for _, s := range result.ImportList {
 		tmp := &Set{Name: helper.CapitalizeFirst(s[strings.LastIndex(s, "/") : len(s)-1])}
 		funcs := make([]NewFunc, 0)
+
 		for func_, import_ := range files {
-			if tmp.Name == import_ {
+			println(s)
+			println(import_)
+			println(func_)
+			if s == import_ {
 				funcs = append(funcs, NewFunc{Name: tmp.Name, Func: func_})
 			}
 		}

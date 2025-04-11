@@ -94,10 +94,9 @@ func run(cmd *cobra.Command, args []string) {
 	fmt.Printf("› \033[36mnunu run \033[0m\n\n")
 }
 
-func (p *Project) initLog() error {
-	project := driver.NewDriver(filepath.Join(".", p.ProjectName, "skaarl-lock.log")).InitSqLiteGorm().InitProject()
-	project.Put("ProjectName", p.ProjectName)
-	return project.SaveWireLogs(project.SelectWireFiles())
+func (p *Project) initLog() (*driver.Driver, error) {
+	d := driver.Driver{}
+	return d.InitLog(p.ProjectName)
 }
 
 // cloneTemplate 克隆项目模板
