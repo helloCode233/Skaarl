@@ -109,10 +109,11 @@ func runCreate(cmd *cobra.Command, args []string) {
 	c.StructNameSnakeCase = strutil.SnakeCase(c.StructName)
 
 	switch c.CreateType {
-	case "handler", "service", "repository", "model":
+	case "handler", "service", "repository":
+		c.genFile()
+	case "model":
 		c.genFile()
 	case "all":
-
 		c.CreateType = "handler"
 		c.genFile()
 
@@ -133,30 +134,5 @@ func runCreate(cmd *cobra.Command, args []string) {
 // genFile 生成组件文件
 // 根据模板生成对应的组件文件
 func (c *Create) genFile() {
-	//filePath := c.FilePath
-	//if filePath == "" {
-	//	filePath = fmt.Sprintf("internal/%s/", c.CreateType)
-	//}
-	//f := helper.CreateFile(filePath, strings.ToLower(c.FileName)+".go")
-	//if f == nil {
-	//	log.Printf("warn: file %s%s %s", filePath, strings.ToLower(c.FileName)+".go", "already exists.")
-	//	return
-	//}
-	//defer f.Close()
-	//var t *template.Template
-	//var err error
-	//if tplPath == "" {
-	//	t, err = template.ParseFS(tpl.CreateTemplateFS, fmt.Sprintf("create/%s.tpl", c.CreateType))
-	//} else {
-	//	t, err = template.ParseFiles(path.Join(tplPath, fmt.Sprintf("%s.tpl", c.CreateType)))
-	//}
-	//if err != nil {
-	//	log.Fatalf("create %s error: %s", c.CreateType, err.Error())
-	//}
-	//err = t.Execute(f, c)
-	//if err != nil {
-	//	log.Fatalf("create %s error: %s", c.CreateType, err.Error())
-	//}
-	//log.Printf("Created new %s: %s", c.CreateType, filePath+strings.ToLower(c.FileName)+".go")
 	helper.GenFile(c.FilePath, c.CreateType, c.FileName, tplPath, c)
 }

@@ -106,7 +106,7 @@ func CreateFile(dirPath string, filename string) *os.File {
 
 // genFile 生成组件文件
 // 根据模板生成对应的组件文件
-func GenFile(filePath, FileName, CreateType, tplPath string, data any) {
+func GenFile(filePath, CreateType, FileName, tplPath string, data any) {
 
 	if filePath == "" {
 		filePath = fmt.Sprintf("internal/%s/", CreateType)

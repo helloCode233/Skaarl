@@ -267,9 +267,6 @@ func start(dir string, programArgs []string) *exec.Cmd {
 		funcs := make([]NewFunc, 0)
 
 		for func_, import_ := range files {
-			println(s)
-			println(import_)
-			println(func_)
 			if s == import_ {
 				funcs = append(funcs, NewFunc{Name: tmp.Name, Func: func_})
 			}
