@@ -2,22 +2,26 @@ package driver
 
 import (
 	"Skaarl/config"
+	"Skaarl/internal/pkg/helper"
 	"Skaarl/internal/pkg/model"
 	"fmt"
 	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
+	"gorm.io/gen"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 type Driver struct {
 	DbPath string
 	db     *gorm.DB
-	config *config.Configuration
+	Config *config.Configuration
 }
 
 func NewDriver(Path string) *Driver {
@@ -36,11 +40,11 @@ func getGormConfig() *gorm.Config {
 	return gorm_conf
 }
 
-func (d *Driver) InitSqLiteGorm() *Driver {
+func (d *Driver) InitSqLiteGorm(dbPath string) *Driver {
 	if d.db != nil {
 		panic("failed to db saved")
 	}
-	db, err := gorm.Open(sqlite.Open(d.DbPath), getGormConfig())
+	db, err := gorm.Open(sqlite.Open(dbPath), getGormConfig())
 	if err != nil {
 		panic("failed to connect database")
 	} else {
@@ -54,7 +58,7 @@ func (d *Driver) InitSqLiteGorm() *Driver {
 }
 
 func (d *Driver) InitLog(ProjectName string) (*Driver, error) {
-	project := NewDriver(filepath.Join(".", ProjectName, "skaarl-lock.log")).InitSqLiteGorm().InitProject()
+	project := NewDriver(filepath.Join(".", ProjectName, "skaarl-lock.log")).InitSqLiteGorm(d.DbPath).InitProject()
 	project.Put("ProjectName", ProjectName)
 	abs, _ := filepath.Abs(filepath.Join(".", ProjectName))
 	project.Put("ProjectPath", strings.Replace(abs, "\\", "/", -1))
@@ -124,17 +128,17 @@ func (d *Driver) viperRead(configPath string) *config.Configuration {
 	return conf
 }
 
-func (d *Driver) InitConfig(configPath string) error {
+func (d *Driver) InitConfig(configPath string) (*Driver, error) {
 	if !filepath.IsAbs(configPath) {
 		abs, err := filepath.Abs(configPath)
 		if err != nil {
-			return err
+			return d, err
 		}
 		configPath = abs
 	}
 	env := d.viperRead(filepath.Join(configPath, "env.yaml")).App.Env
-	d.config = d.viperRead(filepath.Join(configPath, env+".yaml"))
-	return nil
+	d.Config = d.viperRead(filepath.Join(configPath, env+".yaml"))
+	return d, nil
 }
 func (p *Driver) SelectWireFiles(Path string) map[string]string {
 	result := make(map[string]string)
@@ -189,4 +193,99 @@ func (p *Driver) CheckWireFiles() (bool, map[string]string) {
 		return false, selectWireFiles
 	}
 	return true, selectWireFiles
+}
+func (p *Driver) InitMySqlGorm(conf *config.Configuration) *gorm.DB {
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local",
+		conf.Database.UserName,
+		conf.Database.Password,
+		conf.Database.Host,
+		strconv.Itoa(conf.Database.Port),
+		conf.Database.Database,
+		conf.Database.Charset,
+	)
+	db, err := gorm.Open(mysql.Open(dsn), getGormConfig())
+	if err != nil {
+		panic("failed to connect database")
+	} else {
+		sqlDB, _ := db.DB()
+		sqlDB.SetMaxIdleConns(conf.Database.MaxIdleConns)
+		sqlDB.SetMaxOpenConns(conf.Database.MaxOpenConns)
+		err := db.AutoMigrate()
+		if err != nil {
+			panic("failed to connect database")
+		}
+		return db
+	}
+
+}
+func (d *Driver) GetRemoteDb() *gorm.DB {
+	var db *gorm.DB
+	switch d.Config.Database.Driver {
+
+	case "mysql":
+		db = d.InitMySqlGorm(d.Config)
+
+	case "sqlite":
+		db = d.InitSqLiteGorm(d.DbPath).db
+
+	default:
+		panic("unknown database driver: " + d.Config.Database.Driver)
+	}
+	return db
+}
+
+type TableInfo struct {
+	TableName    string `gorm:"column:TABLE_NAME"`
+	TableComment string `gorm:"column:TABLE_COMMENT"`
+}
+
+func (d *Driver) GetRemoteDbTables() []*TableInfo {
+	db := d.GetRemoteDb()
+	var tables []*TableInfo
+	// 执行 SQL 查询以获取所有表名和注释
+	err := db.Raw("SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?", d.Config.Database.Database).Scan(&tables).Error
+	if err != nil {
+		fmt.Println("Failed to get tables:", err)
+		return nil
+	}
+	return tables
+}
+
+func (p *Driver) GenStart(models string, Dal bool) {
+	db := p.GetRemoteDb()
+	//dsn := fmt.Sprintf("root:123456@tcp(127.0.0.1:3306)/test_gen?charset=utf8mb4&parseTime=True&loc=Local")
+	outPath := filepath.Join("internal")
+	helper.GenFile(filepath.Join(outPath, "model"), "time", "time.gen", "create", nil)
+	abs, _ := filepath.Abs(filepath.Join(outPath, "dal"))
+	// 初始化生成器
+	g := gen.NewGenerator(gen.Config{
+		OutPath: abs,
+		Mode:    gen.WithoutContext,
+	})
+
+	var dataMap = map[string]func(gorm.ColumnType) (dataType string){
+		// int mapping
+		"datetime": func(columnType gorm.ColumnType) (dataType string) {
+			return "LocalTime"
+		},
+
+		// bool mapping
+		"tinyint": func(columnType gorm.ColumnType) (dataType string) {
+			ct, _ := columnType.ColumnType()
+			if strings.HasPrefix(ct, "tinyint(1)") {
+				return "bool"
+			}
+			return "byte"
+		},
+	}
+
+	g.WithDataTypeMap(dataMap)
+	g.UseDB(db)
+	if models == "all" {
+		g.ApplyBasic(g.GenerateAllTable()...)
+	} else {
+		g.ApplyBasic(g.GenerateModel(models))
+	}
+	g.Execute()
 }

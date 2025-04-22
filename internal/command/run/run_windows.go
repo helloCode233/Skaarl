@@ -250,7 +250,9 @@ func start(dir string, programArgs []string) *exec.Cmd {
 	cmd := exec.Command("go", append([]string{"run", dir}, programArgs...)...)
 	var db = &driver.Driver{}
 	if helper.FileExists("skaarl-lock.log") {
-		db = driver.NewDriver(filepath.Join(".", "skaarl-lock.log")).InitSqLiteGorm()
+
+		db = driver.NewDriver(filepath.Join(".", "skaarl-lock.log"))
+		db = db.InitSqLiteGorm(db.DbPath)
 	} else {
 		initLog, err := db.InitLog(helper.GetProjectName("."))
 		if err != nil {

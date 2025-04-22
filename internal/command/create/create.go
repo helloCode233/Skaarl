@@ -5,11 +5,13 @@
 package create
 
 import (
+	"Skaarl/internal/pkg/driver"
 	"Skaarl/internal/pkg/helper"
+	"fmt"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/duke-git/lancet/v2/strutil"
 	"github.com/spf13/cobra"
 	"log"
-	"path/filepath"
 	"strings"
 )
 
@@ -39,13 +41,15 @@ var CmdCreate = &cobra.Command{
 	Use:     "create [type] [handler-name]",                  // 命令格式
 	Short:   "Create a new handler/service/repository/model", // 简短描述
 	Example: "skaarl create handler user",                    // 使用示例
-	Args:    cobra.ExactArgs(2),                              // 参数数量
+	//Args:    cobra.ExactArgs(2),                              // 参数数量
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// 主逻辑由子命令实现
 	},
 }
 var (
-	tplPath = "create"
+	tplPath  = "create"
+	filePath = ""
 )
 
 func init() {
@@ -55,6 +59,11 @@ func init() {
 	CmdCreateModel.Flags().StringVarP(&tplPath, "tpl-path", "t", tplPath, "template path")
 	CmdCreateAll.Flags().StringVarP(&tplPath, "tpl-path", "t", tplPath, "template path")
 
+	CmdCreateHandler.Flags().StringVarP(&filePath, "file-path", "f", filePath, "file path")
+	CmdCreateService.Flags().StringVarP(&filePath, "file-path", "f", filePath, "file path")
+	CmdCreateRepository.Flags().StringVarP(&filePath, "file-path", "f", filePath, "file path")
+	CmdCreateModel.Flags().StringVarP(&filePath, "file-path", "f", filePath, "file path")
+	CmdCreateAll.Flags().StringVarP(&filePath, "file-path", "f", filePath, "file path")
 }
 
 // CmdCreateHandler 创建handler子命令
@@ -63,36 +72,45 @@ var CmdCreateHandler = &cobra.Command{
 	Use:     "handler",                    // 命令名称
 	Short:   "Create a new handler",       // 简短描述
 	Example: "skaarl create handler user", // 使用示例
-	Args:    cobra.ExactArgs(1),           // 参数数量
-	Run:     runCreate,                    // 执行函数
+	//Args:    cobra.ExactArgs(1),           // 参数数量
+	Run: runCreate, // 执行函数
 }
 var CmdCreateService = &cobra.Command{
 	Use:     "service",
 	Short:   "Create a new service",
 	Example: "skaarl create service user",
-	Args:    cobra.ExactArgs(1),
-	Run:     runCreate,
+	//Args:    cobra.ExactArgs(1),
+	Run: runCreate,
 }
 var CmdCreateRepository = &cobra.Command{
 	Use:     "repository",
 	Short:   "Create a new repository",
 	Example: "skaarl create repository user",
-	Args:    cobra.ExactArgs(1),
-	Run:     runCreate,
+	//Args:    cobra.ExactArgs(1),
+	Run: runCreate,
 }
 var CmdCreateModel = &cobra.Command{
 	Use:     "model",
 	Short:   "Create a new model",
 	Example: "skaarl create model user",
-	Args:    cobra.ExactArgs(1),
-	Run:     runCreate,
+	//Args:    cobra.ExactArgs(1),
+	Run: runCreate,
 }
 var CmdCreateAll = &cobra.Command{
 	Use:     "all",
 	Short:   "Create a new handler & service & repository & model",
 	Example: "skaarl create all user",
-	Args:    cobra.ExactArgs(1),
-	Run:     runCreate,
+	//Args:    cobra.ExactArgs(1),
+	Run: runCreate,
+}
+
+func ModelGen(layout string, dal bool) {
+	localDatabase, err := driver.NewDriver("skaarl-lock.log").InitConfig("config")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	localDatabase.GenStart(layout, dal)
 }
 
 // runCreate 创建组件主逻辑
@@ -101,18 +119,44 @@ func runCreate(cmd *cobra.Command, args []string) {
 	c := NewCreate()
 	c.ProjectName = helper.GetProjectName(".")
 	c.CreateType = cmd.Use
-	c.FilePath, c.StructName = filepath.Split(args[0])
+	localDatabase, err := driver.NewDriver("skaarl-lock.log").InitConfig("config")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	tableInfos := localDatabase.GetRemoteDbTables()
+	options := make([]string, len(tableInfos)+1)
+	for i, info := range tableInfos {
+		options[i] = info.TableName
+	}
+	options[len(tableInfos)] = "all"
+	prompt := &survey.Select{
+		Message: fmt.Sprintf("Please select a %s:", c.CreateType),
+		Options: options,
+		Description: func(value string, index int) string {
+			if value == "all" {
+				return fmt.Sprintf("Create All %s", c.CreateType)
+			}
+			return tableInfos[index].TableComment
+		},
+	}
+	layout := ""
+	err = survey.AskOne(prompt, &layout)
+	if err != nil {
+		println(err.Error())
+	}
+	c.FilePath = filePath
+	c.StructName = layout
 	c.FileName = strings.ReplaceAll(c.StructName, ".go", "")
 	c.StructName = strutil.UpperFirst(strutil.CamelCase(c.FileName))
 	c.StructNameLowerFirst = strutil.LowerFirst(c.StructName)
 	c.StructNameFirstChar = string(c.StructNameLowerFirst[0])
 	c.StructNameSnakeCase = strutil.SnakeCase(c.StructName)
-
 	switch c.CreateType {
 	case "handler", "service", "repository":
 		c.genFile()
 	case "model":
-		c.genFile()
+		ModelGen(layout, true)
 	case "all":
 		c.CreateType = "handler"
 		c.genFile()
@@ -123,8 +167,9 @@ func runCreate(cmd *cobra.Command, args []string) {
 		c.CreateType = "repository"
 		c.genFile()
 
-		c.CreateType = "model"
-		c.genFile()
+		ModelGen(layout, true)
+		//c.CreateType = "model"
+		//c.genFile()
 	default:
 		log.Fatalf("Invalid handler type: %s", c.CreateType)
 	}

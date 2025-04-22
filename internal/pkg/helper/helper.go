@@ -3,6 +3,7 @@ package helper
 import (
 	"Skaarl/tpl"
 	"fmt"
+	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"path"
@@ -10,8 +11,6 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
-
-	"github.com/spf13/cobra"
 )
 
 func GetProjectName(dir string) string {
