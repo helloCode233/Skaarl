@@ -2,113 +2,267 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"{{ .ProjectName }}/internal/service"
-	"{{ .ProjectName }}/pkg/helper/result"
+	"{{ .ProjectName }}/internal/model"
+    "{{ .ProjectName }}/internal/service"
+    "{{ .ProjectName }}/pkg/helper/result"
+	"strings"
 )
+
 // @wire:Handler
 type {{ .StructName }}Handler struct {
-	*Handler
-	{{ .StructNameLowerFirst }}Service service.{{ .StructName }}Service
+	service service.{{ .StructName }}Service
 }
 
-type create{{ .StructName }}Request struct {
-	// TODO: 添加请求字段
-}
-
-type update{{ .StructName }}Request struct {
-	// TODO: 添加请求字段
-}
-
-type list{{ .StructName }}sRequest struct {
-	// TODO: 添加分页和过滤字段
-}
-
-func New{{ .StructName }}Handler(
-    handler *Handler,
-    {{ .StructNameLowerFirst }}Service service.{{ .StructName }}Service,
-) *{{ .StructName }}Handler {
+// New{{ .StructName }}Handler 创建控制器
+func New{{ .StructName }}Handler(service service.{{ .StructName }}Service) *{{ .StructName }}Handler {
 	return &{{ .StructName }}Handler{
-		Handler:      handler,
-		{{ .StructNameLowerFirst }}Service: {{ .StructNameLowerFirst }}Service,
+		service: service,
 	}
 }
 
-func (h *{{ .StructName }}Handler) Create{{ .StructName }}(ctx *gin.Context) {
-	var req create{{ .StructName }}Request
-	if err := ctx.ShouldBind(&req); err != nil {
+type IdsRequest struct {
+	ids []string
+}
+
+// @Summary 创建
+// @Description 创建新的记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Accept  json
+// @Produce  json
+// @Param {{ .StructNameLowerFirst }} body model.{{ .StructName }} true "信息"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s [post]
+func (c *{{ .StructName }}Handler) Create{{ .StructName }}(ctx *gin.Context) {
+	var {{ .StructNameLowerFirst }} model.{{ .StructName }}
+	if err := ctx.ShouldBindJSON(&{{ .StructNameLowerFirst }}); err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
-	// TODO: 实现创建逻辑
+
+	err := c.service.Create{{ .StructName }}(&{{ .StructNameLowerFirst }})
+	if err != nil {
+		result.FailByErr(ctx, err)
+	} else {
+		result.Success(ctx, {{ .StructNameLowerFirst }})
+
+	}
+
 }
 
-func (h *{{ .StructName }}Handler) Get{{ .StructName }}(ctx *gin.Context) {
-	id, err := h.GetIDFromParam(ctx)
+// @Summary 获取
+// @Description 根据ID获取记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Produce  json
+// @Param id path string true "ID"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s/{id} [get]
+func (c *{{ .StructName }}Handler) Get{{ .StructName }}(ctx *gin.Context) {
+	id := ctx.Query("id")
+	if id == "" {
+		result.ServerError(ctx, "IDs are required")
+		return
+	}
+
+	{{ .StructNameLowerFirst }}, err := c.service.Get{{ .StructName }}(id)
 	if err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
 
-	res, err := h.{{ .StructNameLowerFirst }}Service.Get{{ .StructName }}(ctx.Request.Context(), id)
+	if {{ .StructNameLowerFirst }} == nil {
+		result.ServerError(ctx, "{{ .StructName }} not found")
+
+		return
+	}
+
+	result.Success(ctx, {{ .StructNameLowerFirst }})
+}
+
+// @Summary 更新
+// @Description 更新记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Accept  json
+// @Produce  json
+// @Param id path string true "ID"
+// @Param {{ .StructNameLowerFirst }} body model.{{ .StructName }} true "信息"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s/{id} [post]
+func (c *{{ .StructName }}Handler) Update{{ .StructName }}(ctx *gin.Context) {
+	id := ctx.Query("id")
+	if id == "" {
+		result.ServerError(ctx, "IDs are required")
+		return
+	}
+
+	var {{ .StructNameLowerFirst }} model.{{ .StructName }}
+	if err := ctx.ShouldBindJSON(&{{ .StructNameLowerFirst }}); err != nil {
+		result.FailByErr(ctx, err)
+		return
+	}
+
+	err := c.service.Update{{ .StructName }}(&{{ .StructNameLowerFirst }})
 	if err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
 
-	result.Success(ctx, res)
+	result.Success(ctx, {{ .StructNameLowerFirst }})
 }
 
-func (h *{{ .StructName }}Handler) Update{{ .StructName }}(ctx *gin.Context) {
-	id, err := h.GetIDFromParam(ctx)
+// @Summary 删除
+// @Description 根据ID删除记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Produce  json
+// @Param id path string true "ID"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s/{id} [get]
+func (c *{{ .StructName }}Handler) Delete{{ .StructName }}(ctx *gin.Context) {
+	id := ctx.Query("id")
+	if id == "" {
+		result.ServerError(ctx, "IDs are required")
+		return
+	}
+
+	err := c.service.Delete{{ .StructName }}(id)
 	if err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
 
-	var req update{{ .StructName }}Request
-	if err := ctx.ShouldBind(&req); err != nil {
+	result.Success(ctx, "")
+}
+
+// @Summary 列表
+// @Description 获取列表
+// @Tags {{ .StructNameLowerFirst }}
+// @Produce  json
+// @Param filter query map[string]interface{} false "过滤条件"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s [post]
+func (c *{{ .StructName }}Handler) List{{ .StructName }}s(ctx *gin.Context) {
+	filter := make(map[string]interface{})
+	if err := ctx.ShouldBindJSON(&filter); err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
-	// TODO: 实现更新逻辑
-}
-
-func (h *{{ .StructName }}Handler) Delete{{ .StructName }}(ctx *gin.Context) {
-	id, err := h.GetIDFromParam(ctx)
+	{{ .StructNameLowerFirst }}s, err := c.service.List{{ .StructName }}s(filter)
 	if err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
 
-	if err := h.{{ .StructNameLowerFirst }}Service.Delete{{ .StructName }}(ctx.Request.Context(), id); err != nil {
+	result.Success(ctx, {{ .StructNameLowerFirst }}s)
+}
+
+// @Summary 批量获取
+// @Description 批量获取记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Produce  json
+// @Param ids query []string true "ID列表"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s/batch [get]
+func (c *{{ .StructName }}Handler) BatchGet{{ .StructName }}s(ctx *gin.Context) {
+	var idsReq IdsRequest
+	if err := ctx.ShouldBindJSON(&idsReq); err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
 
-	result.Success(ctx, res)
-}
-
-func (h *{{ .StructName }}Handler) List{{ .StructName }}s(ctx *gin.Context) {
-	var req list{{ .StructName }}sRequest
-	if err := ctx.ShouldBind(&req); err != nil {
+	{{ .StructNameLowerFirst }}s, err := c.service.BatchGet{{ .StructName }}s(idsReq.ids)
+	if err != nil {
 		result.FailByErr(ctx, err)
 		return
 	}
-	// TODO: 实现列表查询逻辑
+
+	result.Success(ctx, {{ .StructNameLowerFirst }}s)
 }
 
-func (h *{{ .StructName }}Handler) BatchGet{{ .StructName }}s(ctx *gin.Context) {
-	// TODO: 实现批量获取逻辑
+// @Summary 批量创建
+// @Description 批量创建记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Accept  json
+// @Produce  json
+// @Param {{ .StructNameLowerFirst }}s body []model.{{ .StructName }} true "列表"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s/batch [post]
+func (c *{{ .StructName }}Handler) BatchCreate{{ .StructName }}s(ctx *gin.Context) {
+	var {{ .StructNameLowerFirst }}s []*model.{{ .StructName }}
+	if err := ctx.ShouldBindJSON(&{{ .StructNameLowerFirst }}s); err != nil {
+		result.FailByErr(ctx, err)
+		return
+	}
+
+	err := c.service.BatchCreate{{ .StructName }}s({{ .StructNameLowerFirst }}s)
+	if err != nil {
+		result.FailByErr(ctx, err)
+		return
+	}
+
+	result.Success(ctx, {{ .StructNameLowerFirst }}s)
 }
 
-func (h *{{ .StructName }}Handler) BatchCreate{{ .StructName }}s(ctx *gin.Context) {
-	// TODO: 实现批量创建逻辑
+// @Summary 批量更新
+// @Description 批量更新记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Accept  json
+// @Produce  json
+// @Param {{ .StructNameLowerFirst }}s body []model.{{ .StructName }} true "列表"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s/batch [post]
+func (c *{{ .StructName }}Handler) BatchUpdate{{ .StructName }}s(ctx *gin.Context) {
+	var {{ .StructNameLowerFirst }}s []*model.{{ .StructName }}
+	if err := ctx.ShouldBindJSON(&{{ .StructNameLowerFirst }}s); err != nil {
+		result.FailByErr(ctx, err)
+		return
+	}
+
+	err := c.service.BatchUpdate{{ .StructName }}s({{ .StructNameLowerFirst }}s)
+	if err != nil {
+		result.FailByErr(ctx, err)
+		return
+	}
+
+	result.Success(ctx, {{ .StructNameLowerFirst }}s)
 }
 
-func (h *{{ .StructName }}Handler) BatchUpdate{{ .StructName }}s(ctx *gin.Context) {
-	// TODO: 实现批量更新逻辑
-}
-
-func (h *{{ .StructName }}Handler) BatchDelete{{ .StructName }}s(ctx *gin.Context) {
-	// TODO: 实现批量删除逻辑
+// @Summary 批量删除
+// @Description 批量删除记录
+// @Tags {{ .StructNameLowerFirst }}
+// @Produce  json
+// @Param ids query []string true "ID列表"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /{{ .StructNameLowerFirst }}s/batch [post]
+func (c *{{ .StructName }}Handler) BatchDelete{{ .StructName }}s(ctx *gin.Context) {
+    var idsReq IdsRequest
+    if err := ctx.ShouldBindJSON(&idsReq); err != nil {
+        result.FailByErr(ctx, err)
+        return
+    }
+	err := c.service.BatchDelete{{ .StructName }}s(idsReq.ids)
+	if err != nil {
+		result.FailByErr(ctx, err)
+	} else {
+		result.Success(ctx, "")
+	}
 }

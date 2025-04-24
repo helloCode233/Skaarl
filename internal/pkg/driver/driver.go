@@ -281,11 +281,20 @@ func (p *Driver) GenStart(models string, Dal bool) {
 	}
 
 	g.WithDataTypeMap(dataMap)
+	g.WithJSONTagNameStrategy(func(columnName string) (tagContent string) {
+		split := strings.Split(columnName, "_")
+		tmp := split[0]
+		for i := 1; i < len(split); i++ {
+			tmp += strings.ToUpper(split[i][:1]) + split[i][1:]
+		}
+		return tmp
+	})
 	g.UseDB(db)
 	if models == "all" {
-		g.ApplyBasic(g.GenerateAllTable()...)
+		g.GenerateAllTable()
+		//g.ApplyBasic(g.GenerateAllTable()...)
 	} else {
-		g.ApplyBasic(g.GenerateModel(models))
+		g.GenerateModel(models)
 	}
 	g.Execute()
 }
